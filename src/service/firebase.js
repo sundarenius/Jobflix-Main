@@ -26,7 +26,11 @@ const ApiEvent = {
 }
 
 export default {
-  applicants (path, event, data) {
+  onChange (ref, callback) {
+    return db().ref(ref).child(store.state.userDbId).on('value', callback)
+  },
+  applicants (p, event, data) {
+    const path = p || ''
     const fb = db().ref('applicants').child(store.state.userDbId + `/profileInfo/${path}`)
     return ApiEvent[event](data, fb)
   },
@@ -41,5 +45,17 @@ export default {
   bevakningar (event, data) {
     const fb = db().ref('bevakningar')
     return ApiEvent[event](data, fb)
+  },
+  presentations (path, event, data) {
+    const fb = db().ref('presentations').child(path)
+    return ApiEvent[event](data, fb)
+  },
+  presentationsOffical (path, event, data) {
+    const fb = db().ref('presentationsOffical').child(path)
+    return ApiEvent[event](data, fb)
+  },
+  ads (event, callback) {
+    const fb = db().ref('ads')
+    return ApiEvent[event](callback, fb)
   }
 }

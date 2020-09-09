@@ -622,7 +622,7 @@
 </template>
 
 <script>
-import { lookForBevakningar } from '@/utils/helpers'
+import { lookForBevakningar, sendCampaignToCampaingsNode } from '@/utils/helpers'
 import firebase from 'firebase/app'
 import 'firebase/storage'
 import 'firebase/database'
@@ -972,7 +972,7 @@ export default {
               global.editCampaign = false
               global.updateWasSuccessfulNotification = true
               global.limitPresentationsToOnePerBransch(global.editCampaignObj)
-              global.$store.commit('sendCampaignToCampaingsNode')
+              sendCampaignToCampaingsNode()
             })
           } else if (nr === 1) {
             // Ta bort kampanj
@@ -984,7 +984,7 @@ export default {
               global.loadingDelete = false
               global.editCampaign = false
               global.updateWasSuccessfulNotification = true
-              global.$store.commit('sendCampaignToCampaingsNode')
+              sendCampaignToCampaingsNode()
             })
           }
         })

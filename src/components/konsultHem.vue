@@ -516,6 +516,7 @@
 <script>
 import firebase from 'firebase/app'
 import 'firebase/database'
+import { sendCampaignToCampaingsNode } from '@/utils/helpers'
 
 export default {
   data () {
@@ -597,7 +598,7 @@ export default {
       firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/')
         .update({campaigns: newCampaignObj})
       .then(res => {
-        this.$store.commit('sendCampaignToCampaingsNode')
+        sendCampaignToCampaingsNode()
       })
     },
     sortCampaignsArr (par) {

@@ -2,6 +2,7 @@ import Vue from 'vue'
 import Vuex from 'vuex'
 import firebase from 'firebase/app'
 import 'firebase/database'
+import { sendCampaignToCampaingsNode } from '@/utils/helpers'
 
 Vue.use(Vuex)
 
@@ -64,47 +65,46 @@ export const store = new Vuex.Store({
     profileInfoCommit (state, payload) {
       state.profileInfo = payload
     },
+    setGetPureProfileInfo (state, payload) {
+      state.getPureProfileInfo = payload
+    },
     welcomeModalCommit (state, payload) {
       state.profileInfo.welcomeModal = payload
     },
     notificationsCommit (state, payload) {
       state.notifications = payload
     },
-    updateAllPresentationsWhenProfileIsUpdated (state) {
+    setNotificationsArr (state, payload) {
+      state.notificationsArr = payload
+    },
+    setProfileCampaigns (state, payload) {
+      state.profileInfo.campaigns[payload.index] = payload.data
+    },
+    setMeetingEvents (state, payload) {
+      state.meetingEvents = payload
+    }
+  },
+  actions: {
+    setOnChangeData ({ commit }, payload) {
+      commit('profileInfoCommit', payload.profileInfo)
+      commit('setGetPureProfileInfo', payload.getPureProfileInfo)
+      commit('notificationsCommit', payload.notifications)
+      commit('setNotificationsArr', payload.notificationsArr)
+    },
+    updateAllPresentationsWhenProfileIsUpdated ({ commit, state }) {
       let update = 0
       if (Object.keys(state.profileInfo.campaigns).length > 1) {
         for (let i in state.profileInfo.campaigns) {
           if (state.profileInfo.campaigns[i].active && state.profileInfo.campaigns[i].hasOwnProperty('profile')) {
             update = 1
-            state.profileInfo.campaigns[i].profile = state.profileInfo.profil
+            commit('setProfileCampaigns', { data: state.profileInfo.profil, index: i })
           }
         }
       }
       if (update === 1) {
-        store.commit('sendCampaignToCampaingsNode')
+        sendCampaignToCampaingsNode()
       }
     },
-    sendCampaignToCampaingsNode (state) {
-      firebase.database().ref('presentations').child(state.user.id)
-        .set(state.profileInfo.campaigns)
-      const x = JSON.stringify(state.profileInfo.campaigns)
-      const presentationsOfficial = JSON.parse(x)
-      for (var i in presentationsOfficial) {
-        if (presentationsOfficial[i].hasOwnProperty('profile')) {
-          presentationsOfficial[i].profile.fullName = 'Censurerat Namn'
-          presentationsOfficial[i].profile.email = 'xx'
-          presentationsOfficial[i].profile.phoneNr = 'xx'
-          presentationsOfficial[i].name = 'Censurerat Namn'
-          presentationsOfficial[i].email = 'xx'
-          presentationsOfficial[i].userId = 'xx'
-          presentationsOfficial[i].phoneNr = 'xx'
-        }
-      }
-      firebase.database().ref('presentationsOffical').child(state.user.id)
-        .set(presentationsOfficial)
-    }
-  },
-  actions: {
     signUserUp ({commit}, payload) {
       commit('userName', payload.name)
       commit('setLoading', true)

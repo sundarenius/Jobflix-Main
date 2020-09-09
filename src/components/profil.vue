@@ -1091,7 +1091,7 @@ export default {
         if (this.profile.competences === '') {
           this.profile.competences = []
         }
-        this.$store.commit('updateAllPresentationsWhenProfileIsUpdated')
+        this.$store.dispatch('updateAllPresentationsWhenProfileIsUpdated')
       })
     },
     updateJSONAtPage () {

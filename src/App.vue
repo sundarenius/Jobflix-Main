@@ -1259,6 +1259,7 @@
 import Api from '@/service/firebase'
 import firebase from 'firebase/app'
 import 'firebase/database'
+import { onLoadFireBaseData } from '@/utils/helpers'
 
 export default {
   data () {
@@ -1478,7 +1479,7 @@ export default {
       }
     },
     welcomeModalFalseForever () {
-      Api.applicants(null, 'update', {welcomeModal: false})
+      Api.applicants(null, 'update', { welcomeModal: false })
       // Notifiera new user till admin notifications och maila
       let adminNotification = {
         name: this.$store.state.profileInfo.profil.fullName,
@@ -1488,82 +1489,28 @@ export default {
         notificationTo: 'Privatperson',
         time: new Date().toISOString().substr(0, 19).replace('T', ' ')
       }
-      firebase.database().ref('admin').child('notifications')
-        .push(adminNotification)
+      Api.admin('notifications', 'push', adminNotification)
     },
     loadFireBaseData () {
-      const global = this
-      const database = firebase.database()
-      database.ref('applicants').child(global.$store.state.userDbId).on('value', response => {
-        global.$store.state.profileInfo = response.val().profileInfo
-        global.$store.state.getPureProfileInfo = response.val().profileInfo.profil
-        global.$store.state.notifications = response.val().profileInfo.events.notifications.shift()
-        global.$store.state.notificationsArr = response.val().profileInfo.events.notifications
-        global.messagesObj = response.val().profileInfo.events.messages
-        var newMessages = 0
-        for (var m in response.val().profileInfo.events.messages) {
-          if (response.val().profileInfo.events.messages[m].hasOwnProperty('newMessageForApplicant')) {
-            newMessages = (newMessages + response.val().profileInfo.events.messages[m].newMessageForApplicant)
-            if (global.messageWho !== '') {
-              if (response.val().profileInfo.events.messages[m].businessUserId === global.messageWho.businessUserId) {
-                global.theMessageConversion = response.val().profileInfo.events.messages[m]
-                break
-              }
-            }
-          }
-        }
-        global.messages = newMessages
-        // Styr upp requests
-        let requestLength = 0
-        let newRequestArr = []
-        for (var x in response.val().profileInfo.events.requests) {
-          if (response.val().profileInfo.events.requests[x].accepted === 0) {
-            requestLength = (requestLength + 1)
-            if (response.val().profileInfo.events.requests[x].hasOwnProperty('accepted')) {
-              newRequestArr.push(response.val().profileInfo.events.requests[x])
-            }
-          }
-        }
-        global.requests = requestLength
-        global.requestsArr = newRequestArr
-        var meetingEventsArr = []
-        global.meetingEvents = []
-        global.meetingEventDates = []
-        // Fixa in färdiga appointments
-        for (var i in response.val().profileInfo.events.appointments) {
-          if (response.val().profileInfo.events.appointments[i].accepted === 1) {
-            meetingEventsArr.push(response.val().profileInfo.events.appointments[i])
-            global.meetingEventDates.push(response.val().profileInfo.events.appointments[i].acceptedTime.date)
-          }
-        }
-        global.meetingEvents = meetingEventsArr
-        global.$store.state.meetingEvents = meetingEventsArr
-        if (this.count === 0) {
-          this.updateLastLogin()
-        }
-        this.count++
-      })
+      const ctx = this
+      Api.onChange('applicants', response => { onLoadFireBaseData(ctx, response) })
     },
     updateLastLogin () {
       const theDate = new Date().toISOString().substr(0, 19).replace('T', ' ')
       Api.applicants(null, 'update', { lastLogIn: theDate })
       // Passa på att hämta alla annonserna
       let arr = []
-      firebase.database().ref('ads')
-        .once('value', response => {
-          const res = response.val()
-          for (var i in res) {
-            for (var xx in res[i]) {
-              if (res[i][xx].hasOwnProperty('active') && res[i][xx].active === true) {
-                arr.push(res[i][xx])
-              }
+      Api.ads('once', response => {
+        const res = response.val()
+        for (var i in res) {
+          for (var xx in res[i]) {
+            if (res[i][xx].hasOwnProperty('active') && res[i][xx].active === true) {
+              arr.push(res[i][xx])
             }
           }
-          this.$store.state.allAds = arr
-        })
-        .catch(function (error) {
-          console.log(error)
-        })
+        }
+        this.$store.state.allAds = arr
+      })
       for (let i in this.$store.state.profileInfo.campaigns) {
         if (this.$store.state.profileInfo.campaigns[i].hasOwnProperty('videoPlay')) {
           this.$store.state.profileInfo.campaigns[i].videoPlay = true
@@ -1594,8 +1541,7 @@ export default {
       var global = this
       setTimeout(function () {
         if (global.theMessageConversion.newMessageForApplicant > 0) {
-          firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages')
-          .once('value', response => {
+          Api.applicants('events/messages', 'once', response => {
             const res = response.val()
             for (var i in res) {
               if (res[i].businessUserId === msg.businessUserId) {
