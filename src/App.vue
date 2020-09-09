@@ -1604,8 +1604,10 @@ export default {
           id: new Date().getTime() + 'dd' + Math.random()
         }
         // Kolla om konversationen finns eller om det ska läggas upp en ny + Lägg upp för applicant Sidan
-        firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/events/messages')
-          .once('value', response => {
+        Api.applicants(
+          `events/messages`,
+          'once',
+          response => {
             const res = response.val()
             for (var i in res) {
               if (res[i].businessUserId === businessUserId) {
@@ -1615,11 +1617,17 @@ export default {
               }
             }
             if (conversionExists === 1) {
-              firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages/' + theConversionId + '/msg')
-                .push(pushExisting)
+              Api.applicants(
+                `events/messages/${theConversionId}/msg`,
+                'push',
+                pushExisting
+              )
             } else {
-              firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages')
-                .push(newMessageObj)
+              Api.applicants(
+                `${global.$store.state.userDbId}/profileInfo/events/messages`,
+                'push',
+                newMessageObj
+              )
             }
             // Dunka upp till business messages
             var businessDBMessageId
