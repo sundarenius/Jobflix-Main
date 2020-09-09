@@ -594,7 +594,7 @@ export default {
         }
       }
       newCampaignObj = this.$store.state.profileInfo.campaigns
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
+      firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/')
         .update({campaigns: newCampaignObj})
       .then(res => {
         this.$store.commit('sendCampaignToCampaingsNode')

@@ -135,7 +135,7 @@ export default {
       .then(function (response) {
         global.$store.state.profileInfo = userObject
         global.$store.state.getPureProfileInfo = global.$store.state.profileInfo.profil
-        global.$store.state.yourDatabaseString = theDBKey
+        global.$store.state.userDbId = theDBKey
         global.$store.state.loadTheSite = true
       })
     }
@@ -150,7 +150,7 @@ export default {
         } else {
           global.userIsNotABusinessUser = true
           global.$store.state.loadTheSite = true
-          global.$store.state.yourDatabaseString = theDBKey
+          global.$store.state.userDbId = theDBKey
           global.$store.state.profileInfo = 'userObject'
         }
       })

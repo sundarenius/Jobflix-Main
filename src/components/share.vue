@@ -622,6 +622,7 @@
 </template>
 
 <script>
+import { lookForBevakningar } from '@/utils/helpers'
 import firebase from 'firebase/app'
 import 'firebase/storage'
 import 'firebase/database'
@@ -658,7 +659,7 @@ export default {
         yearsExperience: '',
         timeStamp: '',
         videoPlay: true,
-        applicantDBId: this.$store.state.yourDatabaseString,
+        applicantDBId: this.$store.state.userDbId,
         email: '',
         phoneNr: ''
       },
@@ -949,7 +950,7 @@ export default {
       var theCampaign
       var global = this
       this.uploadingPresentation = true
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString)
+      firebase.database().ref('applicants').child(this.$store.state.userDbId)
         .once('value', response => {
           const res = response.val()
           for (var i in res.profileInfo.campaigns) {
@@ -962,7 +963,7 @@ export default {
           if (nr === 0) {
             // Uppdatera kampanj
             global.editCampaignObj.videoPlay = true
-            firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/campaigns/')
+            firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/campaigns/')
               .update({[theCampaign]: global.editCampaignObj})
             .then(res => {
               global.uploadingPresentation = false
@@ -975,7 +976,7 @@ export default {
             })
           } else if (nr === 1) {
             // Ta bort kampanj
-            firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/campaigns/' + theCampaign)
+            firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/campaigns/' + theCampaign)
               .remove()
             .then(res => {
               global.uploadingPresentation = false
@@ -1022,7 +1023,7 @@ export default {
         }
       }
       newCampaignObj = this.$store.state.profileInfo.campaigns
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
+      firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/')
         .update({campaigns: newCampaignObj})
     },
     post () {
@@ -1079,13 +1080,13 @@ export default {
       }
       this.newCampaign.highestEducation = educationLevel
       this.newCampaign.id = new Date().getTime() + 'yi' + Math.random()
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/campaigns')
+      firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/campaigns')
         .push(this.newCampaign)
       .then(res => {
         // Leta efter bevakningar som nästa function
         this.limitPresentationsToOnePerBransch(this.newCampaign)
         let newCampaignHolder = JSON.stringify(this.newCampaign)
-        this.$store.commit('lookForBevakningarStore', JSON.parse(newCampaignHolder))
+        lookForBevakningar(JSON.parse(newCampaignHolder))
         this.$store.commit('sendCampaignToCampaingsNode')
         this.uploadingPresentation = false
         this.loadingUpdate = false

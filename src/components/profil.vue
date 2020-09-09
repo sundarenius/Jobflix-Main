@@ -1075,7 +1075,7 @@ export default {
         })
       }
       // Uppdatera profildata
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
+      firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/')
         .update({profil: this.profile})
       .then(res => {
         this.updatesHasBeenChanged = true

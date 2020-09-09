@@ -1256,6 +1256,7 @@
 </template>
 
 <script>
+import Api from '@/service/firebase'
 import firebase from 'firebase/app'
 import 'firebase/database'
 
@@ -1415,20 +1416,24 @@ export default {
         if (this.filter.category.length === 0) {
           this.filter.category = ''
         }
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({typeOfJobs: this.filter})
+        Api.applicants(null, 'update', {typeOfJobs: this.filter})
       }
       if (title.length > 0 || description.length > 0) {
         if (competences.length > 0) {
-          firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/profil/')
-          .update({competences: competences})
+          Api.applicants('profil/profil/', 'update', {
+            competences,
+            title,
+            description,
+            phoneNr
+          })
+        } else {
+          Api.applicants('profil/profil/', 'update', {
+            competences,
+            title,
+            description,
+            phoneNr
+          })
         }
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/profil/')
-        .update({title: title})
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/profil/')
-        .update({description: description})
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/profil/')
-        .update({phoneNr: phoneNr})
       }
     },
     deleteOldAppointments () {
@@ -1444,8 +1449,7 @@ export default {
       }
       if (foundOldAppointments === 1) {
         console.log(newObj)
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/events/')
-        .update({appointments: newObj})
+        Api.applicants('events/', 'update', {appointments: newObj})
       }
     },
     getFilter () {
@@ -1474,8 +1478,7 @@ export default {
       }
     },
     welcomeModalFalseForever () {
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({welcomeModal: false})
+      Api.applicants(null, 'update', {welcomeModal: false})
       // Notifiera new user till admin notifications och maila
       let adminNotification = {
         name: this.$store.state.profileInfo.profil.fullName,
@@ -1491,7 +1494,7 @@ export default {
     loadFireBaseData () {
       const global = this
       const database = firebase.database()
-      database.ref('applicants').child(global.$store.state.yourDatabaseString).on('value', response => {
+      database.ref('applicants').child(global.$store.state.userDbId).on('value', response => {
         global.$store.state.profileInfo = response.val().profileInfo
         global.$store.state.getPureProfileInfo = response.val().profileInfo.profil
         global.$store.state.notifications = response.val().profileInfo.events.notifications.shift()
@@ -1542,9 +1545,8 @@ export default {
       })
     },
     updateLastLogin () {
-      const giveMeDate = new Date().toISOString().substr(0, 19).replace('T', ' ')
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({lastLogIn: giveMeDate})
+      const theDate = new Date().toISOString().substr(0, 19).replace('T', ' ')
+      Api.applicants(null, 'update', { lastLogIn: theDate })
       // Passa på att hämta alla annonserna
       let arr = []
       firebase.database().ref('ads')
@@ -1586,13 +1588,13 @@ export default {
       }
     },
     zeroMessage (msg) {
-      // Nollställ msg notifications för denna surr
+      // Nollställ msg notifications för denna konv.
       var theMessageDBId
       var zero = 0
       var global = this
       setTimeout(function () {
         if (global.theMessageConversion.newMessageForApplicant > 0) {
-          firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/messages')
+          firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages')
           .once('value', response => {
             const res = response.val()
             for (var i in res) {
@@ -1601,8 +1603,7 @@ export default {
                 break
               }
             }
-            firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/messages/' + theMessageDBId)
-              .update({newMessageForApplicant: zero})
+            Api.applicants(`events/messages/${theMessageDBId}`, 'update', { newMessageForApplicant: zero })
           })
           .catch(function (error) {
             console.log(error.message)
@@ -1635,7 +1636,7 @@ export default {
           applicantUserId: this.$store.state.user.id,
           businessDBId: 'xx',
           businessUserDBId: 'xx',
-          applicantDBId: this.$store.state.yourDatabaseString,
+          applicantDBId: this.$store.state.userDbId,
           msg: [{
             msg: this.newMessage,
             from: 'applicant'
@@ -1657,7 +1658,7 @@ export default {
           id: new Date().getTime() + 'dd' + Math.random()
         }
         // Kolla om konversationen finns eller om det ska läggas upp en ny + Lägg upp för applicant Sidan
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/events/messages')
+        firebase.database().ref('applicants').child(this.$store.state.userDbId + '/profileInfo/events/messages')
           .once('value', response => {
             const res = response.val()
             for (var i in res) {
@@ -1668,16 +1669,18 @@ export default {
               }
             }
             if (conversionExists === 1) {
-              firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/messages/' + theConversionId + '/msg')
+              firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages/' + theConversionId + '/msg')
                 .push(pushExisting)
             } else {
-              firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/messages')
+              firebase.database().ref('applicants').child(global.$store.state.userDbId + '/profileInfo/events/messages')
                 .push(newMessageObj)
             }
             // Dunka upp till business messages
             var businessDBMessageId
-            firebase.database().ref('businessAccounts').child(global.messageWho.businessDBId + '/corpInfo/users/' + global.messageWho.businessUserDBId + '/user')
-              .once('value', res => {
+            Api.business(
+              `${global.messageWho.businessDBId}/corpInfo/users/${global.messageWho.businessUserDBId}/user`,
+              'once',
+              (res) => {
                 const response = res.val()
                 // Om konversen existerar
                 if (conversionExists === 1) {
@@ -1686,27 +1689,36 @@ export default {
                       if (response.events.messages[xx].applicantUserId === global.$store.state.user.id) {
                         businessDBMessageId = xx
                         newMsgBusinessNotification = response.events.messages[xx].newMessageForBusiness
-                        firebase.database().ref('businessAccounts').child(global.messageWho.businessDBId + '/corpInfo/users/' + global.messageWho.businessUserDBId + '/user/events/messages/' + businessDBMessageId + '/msg')
-                          .push(pushExisting)
+                        Api.business(
+                          `${global.messageWho.businessDBId}/corpInfo/users/${global.messageWho.businessUserDBId}/user/events/messages/${businessDBMessageId}/msg`,
+                          'push',
+                          pushExisting
+                        )
                         newMsgBusinessNotification = (newMsgBusinessNotification + 1)
-                        firebase.database().ref('businessAccounts').child(global.messageWho.businessDBId + '/corpInfo/users/' + global.messageWho.businessUserDBId + '/user/events/messages/' + businessDBMessageId)
-                          .update({newMessageForBusiness: newMsgBusinessNotification})
+                        Api.business(
+                          `${global.messageWho.businessDBId}/corpInfo/users/${global.messageWho.businessUserDBId}/user/events/messages/${businessDBMessageId}`,
+                          'update',
+                          { newMessageForBusiness: newMsgBusinessNotification }
+                        )
                         break
                       }
                     }
                   }
                 } else {
-                  // Surret är nytt och måste dunkas upp även hos businessUsern
-                  firebase.database().ref('businessAccounts').child(global.messageWho.businessDBId + '/corpInfo/users/' + global.messageWho.businessUserDBId + '/user/events/messages')
-                    .push(newMessageObj)
+                  // Konversen är ny och måste köras upp även hos businessUsern
+                  Api.business(
+                    `${global.messageWho.businessDBId}/corpInfo/users/${global.messageWho.businessUserDBId}/user/events/messages'`,
+                    'push',
+                    newMessageObj
+                  )
                 }
-                // Dunka upp till adminNotification i firebase
-                firebase.database().ref('admin').child('notifications')
-                  .push(adminNotification)
+                // Dra upp till adminNotification i firebase
+                Api.admin(
+                  'notifications',
+                  'push',
+                  adminNotification
+                )
               })
-            .catch(function (error) {
-              console.log(error.message)
-            })
           })
           .catch(function (error) {
             console.log(error.message)
@@ -1764,7 +1776,6 @@ export default {
       }
     },
     requestResponse (req, answer) {
-      const database = firebase.database()
       req.accepted = answer
       req.answerMsg = this.answerMsgHolder
       this.sendingResponse = true
@@ -1777,28 +1788,36 @@ export default {
       }
       if (req.accepted === 1) {
         notification.msg = global.$store.state.profileInfo.profil.fullName + ' har accepterat din förfrågan.'
-        firebase.database().ref('businessAccounts').child(req.businessDBId + '/corpInfo/users/' + req.businessUserDBId + '/user/events/appointments')
-          .push(req)
+        Api.business(
+          `${req.businessDBId}/corpInfo/users/${req.businessUserDBId}/user/events/appointments`,
+          'push',
+          req
+        )
       } else if (req.accepted === 2) {
         notification.msg = global.$store.state.profileInfo.profil.fullName + ' har bett om en ny tid.'
       } else if (req.accepted === 3) {
         notification.msg = global.$store.state.profileInfo.profil.fullName + ' har avböjt din förfrågan.'
       }
-      firebase.database().ref('businessAccounts').child(req.businessDBId + '/corpInfo/users/' + req.businessUserDBId + '/user/')
-        .once('value', response => {
+      Api.business(
+        `${req.businessDBId}/corpInfo/users/${req.businessUserDBId}/user/`,
+        'once',
+        response => {
           const res = response.val()
           res.events.notifications.splice(1, 0, notification)
           theNotificationArr = res.events.notifications
           theNotificationArr[0] = (theNotificationArr[0] + 1)
-          database.ref('businessAccounts').child(req.businessDBId + '/corpInfo/users/' + req.businessUserDBId + '/user/events/')
-            .update({notifications: theNotificationArr})
-        })
-        .catch(function (error) {
-          console.log(error)
-        })
-      database.ref('businessAccounts').child(req.businessDBId + '/corpInfo/users/' + req.businessUserDBId + '/user/events/requests/')
-      .update({[req.dbKey]: req})
-      .then(res => {
+          Api.business(
+            `${req.businessDBId}/corpInfo/users/${req.businessUserDBId}/user/events/`,
+            'update',
+            {notifications: theNotificationArr}
+          )
+        }
+      )
+      Api.business(
+        `${req.businessDBId}/corpInfo/users/${req.businessUserDBId}/user/events/requests/`,
+        'update',
+        { [req.dbKey]: req }
+      ).then(res => {
         if (answer === 1) {
           global.requestResponseModalText = 'Kontaktpersonen har blivit notifierad. Mötet finns sparade i era båda kalendrar nu!'
         } else if (answer === 2) {
@@ -1813,8 +1832,11 @@ export default {
       })
       // Gör samma men lägg upp till användarens databas
       if (req.accepted === 1) {
-        firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/appointments')
-          .push(req)
+        Api.applicants(
+          'events/appointments',
+          'push',
+          req
+        )
       } else if (req.accepted === 3) {
         let res = global.$store.state
         for (var q in res.profileInfo.campaigns) {
@@ -1826,8 +1848,7 @@ export default {
             }
           }
         }
-        firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/')
-          .update({campaigns: global.$store.state.profileInfo.campaigns})
+        Api.applicants(null, 'update', { campaigns: global.$store.state.profileInfo.campaigns })
       }
       // Ta bort applicantens request i firebase
       for (var o in global.$store.state.profileInfo.events.requests) {
@@ -1835,8 +1856,7 @@ export default {
           delete global.$store.state.profileInfo.events.requests[o]
         }
       }
-      firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/events/')
-        .update({requests: global.$store.state.profileInfo.events.requests})
+      Api.applicants('events/', 'update', { requests: global.$store.state.profileInfo.events.requests })
     // ******* Dunka till admin START ****************
       if (req.accepted === 1) {
         let adminNotification = {
@@ -1887,12 +1907,10 @@ export default {
     },
     zeroNotifications () {
       if (this.$store.state.notificationsArr[0] > 0) {
-        var newArr = this.$store.state.notificationsArr
-        newArr[0] = 0
-        newArr.splice(21)
-        const database = firebase.database()
-        database.ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/events/')
-          .update({notifications: newArr})
+        var notificationsArr = this.$store.state.notificationsArr
+        notificationsArr[0] = 0
+        notificationsArr.splice(21)
+        Api.applicants('events/', 'update', { notifications: notificationsArr })
       }
     },
     toProfil () {
@@ -2100,15 +2118,13 @@ export default {
       }
       arr.unshift(0)
       if (foundPassedReq === 1) {
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-          .update({campaigns: this.$store.state.profileInfo.campaigns})
-        firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/events/')
-          .update({requests: arr})
+        Api.applicants(null, 'update', { campaigns: this.$store.state.profileInfo.campaigns })
+        Api.applicants('events/', 'update', { requests: arr })
       }
       return arr
     },
     userIsNotABusinessAndIsLoggedIn () {
-      return this.$store.state.profileInfo !== '' && this.$store.state.user !== null && this.$store.state.yourDatabaseString !== ''
+      return this.$store.state.profileInfo !== '' && this.$store.state.user !== null && this.$store.state.userDbId !== ''
     },
     loadTheSite () {
       return this.$store.state.loadTheSite
