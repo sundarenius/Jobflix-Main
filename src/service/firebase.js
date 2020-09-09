@@ -2,7 +2,7 @@ import firebase from 'firebase/app'
 import 'firebase/database'
 import { store } from '@/store.js'
 
-const db = firebase.database()
+const db = () => firebase.database()
 
 const errorMsg = (err) => console.error(err)
 
@@ -27,19 +27,19 @@ const ApiEvent = {
 
 export default {
   applicants (path, event, data) {
-    const fb = db.ref('applicants').child(store.state.userDbId + `/profileInfo/${path}`)
+    const fb = db().ref('applicants').child(store.state.userDbId + `/profileInfo/${path}`)
     return ApiEvent[event](data, fb)
   },
   business (path, event, data) {
-    const fb = db.ref('businessAccounts').child(path)
+    const fb = db().ref('businessAccounts').child(path)
     return ApiEvent[event](data, fb)
   },
   admin (path, event, data) {
-    const fb = db.ref('admin').child(path)
+    const fb = db().ref('admin').child(path)
     return ApiEvent[event](data, fb)
   },
   bevakningar (event, data) {
-    const fb = db.ref('bevakningar')
+    const fb = db().ref('bevakningar')
     return ApiEvent[event](data, fb)
   }
 }
