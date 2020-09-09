@@ -1,6 +1,6 @@
 import Api from '@/service/firebase'
 import bevakningAlgorithm from './bevakningAlgorithm'
-import { Store } from '@/store'
+import { store as Store } from '@/store'
 
 const lookForBevUpdateFb = (newBusinessDBId, newUserDBId, campaign, bevakningDBId, notification, adminNotification, sortAll = false) => {
   let realNotificationArr
