@@ -3,6 +3,7 @@ import 'firebase/database'
 import { store } from '@/store.js'
 
 const db = () => firebase.database()
+const storage = () => firebase.storage()
 
 const errorMsg = (err) => console.error(err)
 
@@ -24,6 +25,11 @@ const ApiEvent = {
   },
   set (data, fb, then) {
     return fb.set(data)
+      .then(then)
+      .catch(errorMsg)
+  },
+  remove (data, fb, then) {
+    return fb.remove()
       .then(then)
       .catch(errorMsg)
   }
@@ -61,5 +67,16 @@ export default {
   ads (event, callback) {
     const fb = db().ref('ads')
     return ApiEvent[event](callback, fb)
+  },
+  storage (fileName) {
+    const uniqueId = new Date().getTime().toString()
+    return storage().ref(`official-applicantImages/${uniqueId}/${fileName}`)
+  },
+  officialVideos (fileName) {
+    const uniqueId = new Date().getTime().toString()
+    return db().ref(`official-videos/${uniqueId}/${fileName}`)
+  },
+  videoSnapshots (fileName) {
+    return db().ref('video-snapshots').child(fileName)
   }
 }

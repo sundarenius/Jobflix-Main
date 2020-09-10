@@ -277,8 +277,6 @@
 </template>
 
 <script>
-import firebase from 'firebase/app'
-import 'firebase/database'
 import Api from '@/service/firebase'
 
 export default {

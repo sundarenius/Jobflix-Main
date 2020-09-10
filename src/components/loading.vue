@@ -33,9 +33,7 @@
 </template>
 
 <script>
-import firebase from 'firebase/app'
-import 'firebase/database'
-import 'firebase/auth'
+import Api from '@/service/firebase'
 
 export default {
   data () {
@@ -131,8 +129,7 @@ export default {
       // Dunka upp ny användare
       // let theDBKey = firebase.database().ref().push().key
       let theDBKey = this.$store.state.user.id
-      firebase.database().ref('applicants').child(theDBKey + '/profileInfo').set(userObject)
-      .then(function (response) {
+      Api.applicants(null, 'set', userObject, (response) => {
         global.$store.state.profileInfo = userObject
         global.$store.state.getPureProfileInfo = global.$store.state.profileInfo.profil
         global.$store.state.userDbId = theDBKey
@@ -142,7 +139,7 @@ export default {
     // OM user redan var Signed Up
     if (this.$store.state.userName === '') {
       let theDBKey = this.$store.state.user.id
-      firebase.database().ref('applicants').child(theDBKey + '/profileInfo/userId').once('value', response => {
+      Api.applicants('userId', 'once', response => {
         const res = response.val()
         if (res === null) {
           global.$store.state.getPureProfileInfo = 'Not found'
