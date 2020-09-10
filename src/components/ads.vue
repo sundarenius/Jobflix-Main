@@ -279,6 +279,7 @@
 <script>
 import firebase from 'firebase/app'
 import 'firebase/database'
+import Api from '@/service/firebase'
 
 export default {
   data () {
@@ -349,8 +350,10 @@ export default {
           break
         }
       }
-      firebase.database().ref('businessAccounts').child(theAd.businessDBId + '/corpInfo/users/' + theAd.userDBId + '/user')
-        .once('value', response => {
+      Api.business(
+        `${theAd.businessDBId}/corpInfo/users/${theAd.userDBId}/user`,
+        'once',
+        response => {
           const res = response.val()
           res.events.notifications[0] = (res.events.notifications[0] + 1)
           res.events.notifications.splice(1, 0, notification)
@@ -370,10 +373,16 @@ export default {
             }
           }
           if (alreadyDone === 0) {
-            const first = firebase.database().ref('businessAccounts').child(theAd.businessDBId + '/corpInfo/users/' + theAd.userDBId + '/user/ads/' + theAdDBId + '/applicants')
-              .push(global.searchAd)
-            const second = firebase.database().ref('businessAccounts').child(theAd.businessDBId + '/corpInfo/users/' + theAd.userDBId + '/user/events/')
-              .update({notifications: notificationArr})
+            const first = Api.business(
+              `${theAd.businessDBId}/corpInfo/users/${theAd.userDBId}/user/ads/${theAdDBId}/applicants`,
+              'push',
+              global.searchAd
+            )
+            const second = Api.business(
+              `${theAd.businessDBId}/corpInfo/users/${theAd.userDBId}/user/events/`,
+              'update',
+              { notifications: notificationArr }
+            )
             Promise.all([first, second])
             .then(res => {
               global.openAd = false
@@ -389,8 +398,11 @@ export default {
               notificationTo: 'Business',
               id: new Date().getTime() + 'ee' + Math.random()
             }
-            firebase.database().ref('admin').child('notifications')
-              .push(adminNotification)
+            Api.admin(
+              'notifications',
+              'push',
+              adminNotification
+            )
           // TILLFÄLLIG ADMINNOTIFIKATION LÖSNING SLUT *************
           } else {
             alert('Du har redan sökt på denna annons.')
@@ -542,21 +554,17 @@ export default {
   },
   created () {
     let arr = []
-    firebase.database().ref('ads')
-      .once('value', response => {
-        const res = response.val()
-        for (var i in res) {
-          for (var xx in res[i]) {
-            if (res[i][xx].hasOwnProperty('active') && res[i][xx].active === true) {
-              arr.push(res[i][xx])
-            }
+    Api.ads('once', response => {
+      const res = response.val()
+      for (var i in res) {
+        for (var xx in res[i]) {
+          if (res[i][xx].hasOwnProperty('active') && res[i][xx].active === true) {
+            arr.push(res[i][xx])
           }
         }
-        this.$store.state.allAds = arr
-      })
-      .catch(function (error) {
-        console.log(error)
-      })
+      }
+      this.$store.state.allAds = arr
+    })
   }
 }
 </script>

@@ -7,20 +7,24 @@ const db = () => firebase.database()
 const errorMsg = (err) => console.error(err)
 
 const ApiEvent = {
-  once (callback, fb) {
+  once (callback, fb, then) {
     return fb.once('value', res => { callback(res) })
+      .then(then)
       .catch(errorMsg)
   },
-  update (data, fb) {
+  update (data, fb, then) {
     return fb.update(data)
+      .then(then)
       .catch(errorMsg)
   },
-  push (data, fb) {
+  push (data, fb, then) {
     return fb.push(data)
+      .then(then)
       .catch(errorMsg)
   },
-  set (data, fb) {
+  set (data, fb, then) {
     return fb.set(data)
+      .then(then)
       .catch(errorMsg)
   }
 }
@@ -29,10 +33,10 @@ export default {
   onChange (ref, callback) {
     return db().ref(ref).child(store.state.userDbId).on('value', callback)
   },
-  applicants (p, event, data) {
+  applicants (p, event, data, then) {
     const path = p || ''
     const fb = db().ref('applicants').child(store.state.userDbId + `/profileInfo/${path}`)
-    return ApiEvent[event](data, fb)
+    return ApiEvent[event](data, fb, then)
   },
   business (path, event, data) {
     const fb = db().ref('businessAccounts').child(path)

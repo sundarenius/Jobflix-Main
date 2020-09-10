@@ -1257,8 +1257,6 @@
 
 <script>
 import Api from '@/service/firebase'
-import firebase from 'firebase/app'
-import 'firebase/database'
 import { onLoadFireBaseData } from '@/utils/helpers'
 
 export default {
@@ -1811,6 +1809,7 @@ export default {
         }
       }
       Api.applicants('events/', 'update', { requests: global.$store.state.profileInfo.events.requests })
+      const adminPush = (payload) => { Api.admin('notifications', 'push', payload) }
     // ******* Dunka till admin START ****************
       if (req.accepted === 1) {
         let adminNotification = {
@@ -1823,8 +1822,7 @@ export default {
           time: new Date().toISOString().substr(0, 19).replace('T', ' '),
           id: new Date().getTime() + 'bb' + Math.random()
         }
-        firebase.database().ref('admin').child('notifications')
-          .push(adminNotification)
+        adminPush(adminNotification)
       } else if (req.accepted === 2) {
         let adminNotification = {
           businessUser: req.name,
@@ -1835,8 +1833,7 @@ export default {
           time: new Date().toISOString().substr(0, 19).replace('T', ' '),
           id: new Date().getTime() + 'cc' + Math.random()
         }
-        firebase.database().ref('admin').child('notifications')
-          .push(adminNotification)
+        adminPush(adminNotification)
       }
       // ****** Dunka till admin (Tillfällig lösning tills vi löser automatiska mailutskick) SLUT *****************
     },
