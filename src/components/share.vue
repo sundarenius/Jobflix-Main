@@ -828,7 +828,6 @@ export default {
       // Get file
       var file = event.target.files[0]
       // Create storage red
-      var theUrl = new Date().getTime().toString()
       const storageRef = Api.officialVideos(file.name)
       // Upload file
       const task = storageRef.put(file)
