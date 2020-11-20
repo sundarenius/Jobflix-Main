@@ -693,9 +693,7 @@
 </template>
 
 <script>
-import firebase from 'firebase/app'
-import 'firebase/database'
-import 'firebase/storage'
+import Api from '@/service/firebase'
 
 export default {
   data () {
@@ -890,14 +888,13 @@ export default {
       }
     },
     onFilePicked (event) {
-      var global = this
+      const global = this
       // Get file
-      var file = event.target.files[0]
+      const file = event.target.files[0]
       // Create storage red
-      var theUrl = new Date().getTime().toString()
-      var storageRef = firebase.storage().ref('official-applicantImages/' + theUrl + file.name)
+      const storageRef = Api.storage(file.name)
       // Upload file
-      var task = storageRef.put(file)
+      const task = storageRef.put(file)
       // Update progress bar
       task.on('state_changed',
         function progress (snapshot) {
@@ -910,10 +907,9 @@ export default {
           global.fileUploadError = 'Något gick fel och filen kunde inte laddas upp.'
         },
         function complete () {
-          var myStorage = firebase.storage()
           var result
           var getImageUrl = function () {
-            return myStorage.ref('official-applicantImages/' + theUrl + file.name).getDownloadURL()
+            return Api.storage(file.name).getDownloadURL()
           }
           result = getImageUrl()
           global.profile.profilePic = result
@@ -922,14 +918,13 @@ export default {
       )
     },
     onBackgroundPicked (event) {
-      var global = this
+      const global = this
       // Get file
-      var file = event.target.files[0]
+      const file = event.target.files[0]
       // Create storage red
-      var theUrl = new Date().getTime().toString()
-      var storageRef = firebase.storage().ref('official-applicantImages/' + theUrl + file.name)
+      const storageRef = Api.storage(file.name)
       // Upload file
-      var task = storageRef.put(file)
+      const task = storageRef.put(file)
       // Update progress bar
       task.on('state_changed',
         function progress (snapshot) {
@@ -942,10 +937,9 @@ export default {
           global.fileUploadError = 'Något gick fel och filen kunde inte laddas upp.'
         },
         function complete () {
-          var myStorage = firebase.storage()
           var result
           var getImageUrl = function () {
-            return myStorage.ref('official-applicantImages/' + theUrl + file.name).getDownloadURL()
+            return Api.storage(file.name).getDownloadURL()
           }
           result = getImageUrl()
           global.profile.backgroundImg = result
@@ -1075,9 +1069,7 @@ export default {
         })
       }
       // Uppdatera profildata
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({profil: this.profile})
-      .then(res => {
+      Api.applicants(null, 'update', { profil: this.profile }, res => {
         this.updatesHasBeenChanged = true
         this.updatingProfile = false
         this.changeProfilePicModal = false
@@ -1091,7 +1083,7 @@ export default {
         if (this.profile.competences === '') {
           this.profile.competences = []
         }
-        this.$store.commit('updateAllPresentationsWhenProfileIsUpdated')
+        this.$store.dispatch('updateAllPresentationsWhenProfileIsUpdated')
       })
     },
     updateJSONAtPage () {

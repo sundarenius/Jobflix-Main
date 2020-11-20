@@ -622,9 +622,11 @@
 </template>
 
 <script>
+import { lookForBevakningar, sendCampaignToCampaingsNode } from '@/utils/helpers'
 import firebase from 'firebase/app'
 import 'firebase/storage'
 import 'firebase/database'
+import Api from '@/service/firebase'
 
 export default {
   data () {
@@ -658,7 +660,7 @@ export default {
         yearsExperience: '',
         timeStamp: '',
         videoPlay: true,
-        applicantDBId: this.$store.state.yourDatabaseString,
+        applicantDBId: this.$store.state.userDbId,
         email: '',
         phoneNr: ''
       },
@@ -826,10 +828,9 @@ export default {
       // Get file
       var file = event.target.files[0]
       // Create storage red
-      var theUrl = new Date().getTime().toString()
-      var storageRef = firebase.storage().ref('official-videos/' + theUrl + file.name)
+      const storageRef = Api.officialVideos(file.name)
       // Upload file
-      var task = storageRef.put(file)
+      const task = storageRef.put(file)
       // Update progress bar
       task.on('state_changed',
         function progress (snapshot) {
@@ -850,10 +851,9 @@ export default {
           }
         },
         function complete () {
-          var myStorage = firebase.storage()
-          var giveMe
-          var getImageUrl = function () {
-            return myStorage.ref('official-videos/' + theUrl + file.name).getDownloadURL()
+          let giveMe
+          let getImageUrl = function () {
+            return Api.officialVideos(file.name).getDownloadURL()
           }
           giveMe = getImageUrl()
           if (global.edit.value) {
@@ -915,7 +915,7 @@ export default {
       let nr = [1, 32, 54, 234, 9834, 32, 'gg', 'sdf', 'as', 'wef', 'gfg', 'qwe', 43, 54, 65, 234, 54, 234, 54, 23, 45, 'x']
       let fileName = new Date().getTime() + nr[Math.floor(Math.random() * 10)] + this.$store.state.profileInfo.profil.fullName.split(' ')[0]
       let theImage = image.substr(22)
-      let uploadTask = firebase.storage().ref('video-snapshots').child(fileName).putString(theImage, 'base64', {contentType: 'image/png'})
+      let uploadTask = Api.videoSnapshots(fileName).putString(theImage, 'base64', {contentType: 'image/png'})
       uploadTask.on(firebase.storage.TaskEvent.STATE_CHANGED, // or 'state_changed'
         function (snapshot) {
           // Get task progress, including the number of bytes uploaded and the total number of bytes to be uploaded
@@ -925,10 +925,9 @@ export default {
           global.uploadingNewSnapshot = false
         }, function () {
           // Upload completed successfully, now we can get the download URL
-          var myStorage = firebase.storage()
           var giveMe
-          var getImageUrl = function () {
-            return myStorage.ref('video-snapshots').child(fileName).getDownloadURL()
+          const getImageUrl = function () {
+            return Api.videoSnapshots(fileName).getDownloadURL()
           }
           giveMe = getImageUrl()
           global.$store.state.uploadVideoSnapshotUrlObject = giveMe
@@ -946,56 +945,46 @@ export default {
       this.editCampaign = true
     },
     updateOrDeleteCampaign (videoId, nr) {
-      var theCampaign
-      var global = this
+      let theCampaign
+      const global = this
       this.uploadingPresentation = true
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString)
-        .once('value', response => {
-          const res = response.val()
-          for (var i in res.profileInfo.campaigns) {
-            if (res.profileInfo.campaigns[i].id === videoId) {
-              res.profileInfo.campaigns[i].profile = global.$store.state.profileInfo.profil
-              theCampaign = i
-              break
-            }
+      const thenFunc = (res) => {
+        this.uploadingPresentation = false
+        this.loadingUpdate = false
+        this.loadingDelete = false
+        this.editCampaign = false
+        this.updateWasSuccessfulNotification = true
+        sendCampaignToCampaingsNode()
+      }
+      Api.applicants(null, 'once', response => {
+        const res = response.val()
+        for (var i in res.profileInfo.campaigns) {
+          if (res.profileInfo.campaigns[i].id === videoId) {
+            res.profileInfo.campaigns[i].profile = global.$store.state.profileInfo.profil
+            theCampaign = i
+            break
           }
-          if (nr === 0) {
-            // Uppdatera kampanj
-            global.editCampaignObj.videoPlay = true
-            firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/campaigns/')
-              .update({[theCampaign]: global.editCampaignObj})
-            .then(res => {
-              global.uploadingPresentation = false
-              global.loadingUpdate = false
-              global.loadingDelete = false
-              global.editCampaign = false
-              global.updateWasSuccessfulNotification = true
-              global.limitPresentationsToOnePerBransch(global.editCampaignObj)
-              global.$store.commit('sendCampaignToCampaingsNode')
-            })
-          } else if (nr === 1) {
-            // Ta bort kampanj
-            firebase.database().ref('applicants').child(global.$store.state.yourDatabaseString + '/profileInfo/campaigns/' + theCampaign)
-              .remove()
-            .then(res => {
-              global.uploadingPresentation = false
-              global.loadingUpdate = false
-              global.loadingDelete = false
-              global.editCampaign = false
-              global.updateWasSuccessfulNotification = true
-              global.$store.commit('sendCampaignToCampaingsNode')
-            })
-          }
-        })
-        .catch(function (error) {
-          console.log(error.message)
-        })
+        }
+        if (nr === 0) {
+          // Uppdatera kampanj
+          global.editCampaignObj.videoPlay = true
+          Api.applicants('campaigns/', 'update', {[theCampaign]: global.editCampaignObj}, res => {
+            thenFunc()
+            global.limitPresentationsToOnePerBransch(global.editCampaignObj)
+          })
+        } else if (nr === 1) {
+          // Ta bort kampanj
+          Api.applicants(`campaigns/${theCampaign}`, 'remove', null, res => {
+            thenFunc()
+          })
+        }
+      })
     },
     limitPresentationsToOnePerBransch (p) {
-      var arr = []
-      var fullArr = []
-      var newCampaignObj
-      var changeToFalse
+      const arr = []
+      const fullArr = []
+      let newCampaignObj
+      let changeToFalse
       if (p.active === true) {
         arr.push(p.bransch)
         fullArr.push({bransch: p.bransch, active: p.active})
@@ -1022,8 +1011,7 @@ export default {
         }
       }
       newCampaignObj = this.$store.state.profileInfo.campaigns
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({campaigns: newCampaignObj})
+      Api.applicants(null, 'update', { campaigns: newCampaignObj })
     },
     post () {
       // Postar ny kampanj
@@ -1079,13 +1067,11 @@ export default {
       }
       this.newCampaign.highestEducation = educationLevel
       this.newCampaign.id = new Date().getTime() + 'yi' + Math.random()
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/campaigns')
-        .push(this.newCampaign)
-      .then(res => {
+      Api.applicants('campaigns', 'push', this.newCampaign, res => {
         // Leta efter bevakningar som nästa function
         this.limitPresentationsToOnePerBransch(this.newCampaign)
         let newCampaignHolder = JSON.stringify(this.newCampaign)
-        this.$store.commit('lookForBevakningarStore', JSON.parse(newCampaignHolder))
+        lookForBevakningar(JSON.parse(newCampaignHolder))
         this.$store.commit('sendCampaignToCampaingsNode')
         this.uploadingPresentation = false
         this.loadingUpdate = false

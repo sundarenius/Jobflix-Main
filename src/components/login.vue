@@ -537,7 +537,7 @@ export default {
       return this.$store.state.loadingUser
     },
     userIsNotABusinessAndIsLoggedIn () {
-      return this.$store.state.profileInfo !== '' && this.$store.state.user !== null && this.$store.state.yourDatabaseString !== ''
+      return this.$store.state.profileInfo !== '' && this.$store.state.user !== null && this.$store.state.userDbId !== ''
     },
     wrongCredentialsMsg () {
       if (this.$store.state.authError !== null) {

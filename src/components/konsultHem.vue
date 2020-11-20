@@ -514,8 +514,8 @@
 </template>
 
 <script>
-import firebase from 'firebase/app'
-import 'firebase/database'
+import { sendCampaignToCampaingsNode } from '@/utils/helpers'
+import Api from '@/service/firebase'
 
 export default {
   data () {
@@ -594,10 +594,8 @@ export default {
         }
       }
       newCampaignObj = this.$store.state.profileInfo.campaigns
-      firebase.database().ref('applicants').child(this.$store.state.yourDatabaseString + '/profileInfo/')
-        .update({campaigns: newCampaignObj})
-      .then(res => {
-        this.$store.commit('sendCampaignToCampaingsNode')
+      Api.applicants(null, 'update', {campaigns: newCampaignObj}, res => {
+        sendCampaignToCampaingsNode()
       })
     },
     sortCampaignsArr (par) {
